@@ -1,6 +1,6 @@
 # Findings — LangGraph-react (LangGraph JS / TypeScript)
 Open doc defects only, each backed by probe evidence (`.qa/instructions/QA-RULES.md` section 6). Numbers are stable IDs (code cites `FINDINGS.md #N`), so gaps are removed findings.
-Stack: `@copilotkit/react-core`/`runtime` 1.85.0, `@copilotkit/sdk-js` 1.85.0 (declared `^1.85.0`), `@langchain/langgraph` 1.7.2, `@langchain/core` 1.3.5, `@langchain/openai` 1.8.2, `zod` 3.25.76 (transitive), `@langchain/langgraph-cli` 1.6.0 (npx), `next` 16.4.5, `react` 19.3.0, Node 26.7.0, Windows 11. Docs: https://docs.copilotkit.ai/langgraph-typescript (snapshot 2026-11-05)
+Stack: `@copilotkit/react-core`/`runtime` 1.88.0 (npm latest, the 2026-11-16 run), `@copilotkit/sdk-js` 1.85.0 (declared `^1.85.0`), `@langchain/langgraph` 1.7.2, `@langchain/core` 1.3.5, `@langchain/openai` 1.8.2, `zod` 3.25.76 (transitive), `@langchain/langgraph-cli` 1.6.0 (npx), `next` 16.4.5, `react` 19.3.0, Node 26.7.0, Windows 11. Docs: https://docs.copilotkit.ai/langgraph-typescript (snapshot 2026-11-05)
 
 ## Dev blockers (seen with `npm run dev` and normal use of the page)
 
@@ -20,6 +20,10 @@ Stack: `@copilotkit/react-core`/`runtime` 1.85.0, `@copilotkit/sdk-js` 1.85.0 (d
 - **Doc:** "the agent can render any UI for any request without pre-defined schemas" and "renders cards progressively as data items arrive"; catalog + provider as on the page.
 - **Result (1.85.0, run of 2026-11-09):** asking "Show my team performance." renders no dashboard. The chat shows a red box `A2UI render error: Cannot read properties of undefined (reading 'map')` (browser console: `[A2UI] processMessages error: TypeError: Cannot read properties of undefined (reading 'map') at PayloadValidator.validateComponent`), and the agent still replies "I've shown your team performance dashboard."
 
+**#42 The renderers snippet uses `tooltipStyle` and `barCursor`, which the page never defines (doc change 2026-11-16).**
+- **Doc:** `renderers.tsx` (PieChart) `<Tooltip contentStyle={tooltipStyle} />` and (BarChart) `<Tooltip contentStyle={tooltipStyle} cursor={barCursor} />`; neither name is declared or imported anywhere on the page.
+- **Error:** `tsc`: `Cannot find name 'tooltipStyle'` / `Cannot find name 'barCursor'`. At runtime the PieChart and BarChart renderers throw `ReferenceError: tooltipStyle is not defined` as soon as the agent draws one of those charts.
+
 ### [Voice](https://docs.copilotkit.ai/langgraph-typescript/voice)
 **#36 The page imports a `VoiceChat` component it never shows.**
 - **Doc:** `page.tsx` has `import { VoiceChat } from "./voice-chat";` and renders `<VoiceChat />`. No step or Code tab file shows `voice-chat.tsx` (the Code tab lists `page.tsx`, `sample-audio-button.tsx`, `route.ts`); only the sentence "The parent chat component can then drop that text into the composer's textarea ..." describes it.
@@ -36,6 +40,11 @@ Stack: `@copilotkit/react-core`/`runtime` 1.85.0, `@copilotkit/sdk-js` 1.85.0 (d
 **#15 Frontend code is missing: nothing shows how to pass context to the graph when CopilotKit runs it.**
 - **Doc:** the TypeScript tab only shows a direct `graph.invoke(input, { context: { tenantId }, recursionLimit: 50 })`.
 - **Result:** no frontend or `LangGraphAgent` code sets context for a graph run through CopilotKit and the LangGraph server (the setup the quickstart builds), so the page can't be built. The language tabs also default to Python on the TypeScript track.
+
+### [State and actions](https://docs.copilotkit.ai/langgraph-typescript/generative-ui/components/state-and-actions), [Markdown mode](https://docs.copilotkit.ai/langgraph-typescript/generative-ui/components/markdown-mode), [Adopt from A2UI](https://docs.copilotkit.ai/langgraph-typescript/generative-ui/components/from-a2ui)
+**#43 No LangGraph TypeScript agent setup on these pages, and on a guessed agent the UI renders only sometimes.**
+- **Doc:** the pages show the provider and catalog only; Markdown mode's only agent line is "For a LangGraph Python agent, add `CopilotKitMiddleware`" (#25).
+- **Result:** on the harness agent (`genui.harness.ts`) both CI takes of 2026-11-16 (CopilotKit 1.88.0) failed on State and actions and Markdown mode (empty reply, `render_ui` "no renderer is registered", or a text-only "Here's a card..."); Adopt from A2UI rendered once and failed once. Earlier rates: #32, #38, #39.
 
 ## Minor notes
 - #35 [Headless Threads](https://docs.copilotkit.ai/langgraph-typescript/headless-threads): `ThreadSidebar` calls `useThreads({ agentId: "my-agent" })`, but the page's own `server.ts` registers only `default` (and the chat runs as `default`), so the thread list stays empty. Works with `agentId: "default"` (HARNESS line). Its `server.ts` also uses `agent` and `verifyAppSession` without defining them (harness stand-ins).
